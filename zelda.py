@@ -17,12 +17,15 @@ class SpriteBitmap:
 
 class SpriteBitmaps:
     class Link:
-        Forward = SpriteBitmap(8, 8, bytearray([98,244,138,145,145,138,244,98]))
+        Up = SpriteBitmap(8, 8, bytearray([98,244,138,145,145,138,244,98]))
+        Down = SpriteBitmap(8, 8, bytearray([98,244,142,157,157,142,244,98]))
+        Left = SpriteBitmap(8, 8, bytearray([0,4,238,157,157,137,247,0]))
+        Right = SpriteBitmap(8, 8, bytearray([0,247,137,157,157,238,4,0]))
 
 # Set the FPS (without this call, the default fps is 30)
 thumby.display.setFPS(60)
 
-linkSprite = SpriteBitmaps.Link.Forward.to_sprite()
+linkSprite = SpriteBitmaps.Link.Right.to_sprite()
 
 while(1):
     t0 = time.ticks_ms()   # Get time (ms)
