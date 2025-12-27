@@ -87,27 +87,27 @@ class Player:
         self._sprite.y = self.yPos
 
 
-if __name__ == "__main__":
-    thumby.display.setFPS(60)
+######################### Main loop #########################
+thumby.display.setFPS(60)
 
-    player = Player(0, 0, Directions.Down)
-    start_x = int((thumby.display.width / 2) - int(player.width() / 2))
-    start_y = int(thumby.display.height / 2) - int(player.height() / 2)
-    player.xPos = start_x
-    player.yPos = start_y
+player = Player(0, 0, Directions.Down)
+start_x = int((thumby.display.width / 2) - int(player.width() / 2))
+start_y = int(thumby.display.height / 2) - int(player.height() / 2)
+player.xPos = start_x
+player.yPos = start_y
 
-    while True:
-        t0 = time.ticks_ms()  # Get time (ms)
-        thumby.display.fill(0)  # Fill canvas to black
+while True:
+    t0 = time.ticks_ms()  # Get time (ms)
+    thumby.display.fill(0)  # Fill canvas to black
 
-        if thumby.buttonU.pressed():
-            player.move(Directions.Up)
-        if thumby.buttonD.pressed():
-            player.move(Directions.Down)
-        if thumby.buttonL.pressed():
-            player.move(Directions.Left)
-        if thumby.buttonR.pressed():
-            player.move(Directions.Right)
+    if thumby.buttonU.pressed():
+        player.move(Directions.Up)
+    if thumby.buttonD.pressed():
+        player.move(Directions.Down)
+    if thumby.buttonL.pressed():
+        player.move(Directions.Left)
+    if thumby.buttonR.pressed():
+        player.move(Directions.Right)
 
-        player.draw()
-        thumby.display.update()
+    player.draw()
+    thumby.display.update()
