@@ -2,17 +2,30 @@ import time
 import thumby
 import math
 
-# BITMAP: width: 32, height: 32
-bitmap0 = bytearray([0,0,0,0,0,0,0,0,248,8,232,40,40,40,40,40,40,40,40,40,40,232,8,248,0,0,0,0,0,0,0,
-                     0,0,0,0,0,0,0,0,0,255,0,63,32,32,32,32,32,32,32,32,32,32,63,0,255,0,0,0,0,0,0,0,
-                     0,0,0,0,0,0,0,0,0,255,0,12,12,63,63,12,12,0,0,24,24,3,3,0,255,0,0,0,0,0,0,0,0,0,
-                     0,0,0,0,0,0,0,31,16,16,16,16,20,18,16,20,18,16,16,16,16,16,31,0,0,0,0,0,0,0,0])
+class SpriteBitmap:
+    xDimension: int
+    yDimension: int
+    data: bytearray
+    
+    def __init__(self, xDimension: int, yDimension: int, data: bytearray):
+        self.xDimension = xDimension
+        self.yDimension = yDimension
+        self.data = data
+        
+    def to_sprite(self) -> thumby.Sprite:
+        return thumby.Sprite(self.xDimension, self.yDimension, self.data)
 
-# Make a sprite object using bytearray (a path to binary file from 'IMPORT SPRITE' is also valid)
-thumbySprite = thumby.Sprite(32, 32, bitmap0)
+class SpriteBitmaps:
+    class Link:
+        Forward = SpriteBitmap(32, 32, bytearray([0,0,0,0,0,0,0,0,248,8,232,40,40,40,40,40,40,40,40,40,40,232,8,248,0,0,0,0,0,0,0,
+                         0,0,0,0,0,0,0,0,0,255,0,63,32,32,32,32,32,32,32,32,32,32,63,0,255,0,0,0,0,0,0,0,
+                         0,0,0,0,0,0,0,0,0,255,0,12,12,63,63,12,12,0,0,24,24,3,3,0,255,0,0,0,0,0,0,0,0,0,
+                         0,0,0,0,0,0,0,31,16,16,16,16,20,18,16,20,18,16,16,16,16,16,31,0,0,0,0,0,0,0,0]))
 
 # Set the FPS (without this call, the default fps is 30)
 thumby.display.setFPS(60)
+
+thumbySprite = SpriteBitmaps.Link.Forward.to_sprite()
 
 while(1):
     t0 = time.ticks_ms()   # Get time (ms)
