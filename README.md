@@ -2,7 +2,4 @@
 
 ## Dev env setup
 
-[Install poetry][poetry], then use `poetry install` to install project dependencies.
-
-
-[poetry]: https://python-poetry.org/docs/#installing-with-pipx
+Import into the [Thumby code editor][https://code.thumby.us/] to work on the source file.
