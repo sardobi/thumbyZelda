@@ -1,6 +1,5 @@
 import time
 import thumby
-import math
 
 
 class SpriteBitmap:
@@ -62,14 +61,20 @@ class Player:
 
         self._sprite = self.__directions_to_sprite__[facing]
 
+    def width(self) -> int:
+        return self._sprite.width
+
+    def height(self) -> int:
+        return self._sprite.height
+
     def draw(self):
         thumby.display.drawSprite(self._sprite)
 
     def move(self, direction: Direction):
         if direction == Directions.Up:
-            self.yPos += self._moveSpeed
-        elif direction == Directions.Down:
             self.yPos -= self._moveSpeed
+        elif direction == Directions.Down:
+            self.yPos += self._moveSpeed
         elif direction == Directions.Left:
             self.xPos -= self._moveSpeed
         elif direction == Directions.Right:
@@ -83,27 +88,26 @@ class Player:
 
 
 if __name__ == "__main__":
-    # Set the FPS (without this call, the default fps is 30)
     thumby.display.setFPS(60)
 
-    linkSprite = SpriteBitmaps.Link.Right.to_sprite()
+    player = Player(0, 0, Directions.Down)
+    start_x = int((thumby.display.width / 2) - int(player.width() / 2))
+    start_y = int(thumby.display.height / 2) - int(player.height() / 2)
+    player.xPos = start_x
+    player.yPos = start_y
 
-    while 1:
+    while True:
         t0 = time.ticks_ms()  # Get time (ms)
         thumby.display.fill(0)  # Fill canvas to black
 
-        bobRate = 250  # Set arbitrary bob rate (higher is slower)
-        bobRange = 5  # How many pixels to move the sprite up/down (-5px ~ 5px)
+        if thumby.buttonU.pressed():
+            player.move(Directions.Up)
+        if thumby.buttonD.pressed():
+            player.move(Directions.Down)
+        if thumby.buttonL.pressed():
+            player.move(Directions.Left)
+        if thumby.buttonR.pressed():
+            player.move(Directions.Right)
 
-        # Calculate number of pixels to offset sprite for bob animation
-        bobOffset = math.sin(t0 / bobRate) * bobRange
-
-        # Center the sprite using screen and bitmap dimensions and apply bob offset
-        linkSprite.x = int((thumby.display.width / 2) - (linkSprite.width / 2))
-        linkSprite.y = int(
-            round((thumby.display.height / 2) - (linkSprite.width / 2) + bobOffset)
-        )
-
-        # Display the bitmap using bitmap data, position, and bitmap dimensions
-        thumby.display.drawSprite(linkSprite)
+        player.draw()
         thumby.display.update()
