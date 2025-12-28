@@ -6,13 +6,16 @@ PLAYER_ATTACK_COOLDOWN: int = int(GAME_SPEED / 3)
 PROJECTILE_SWORD_LIFETIME: int = GAME_SPEED * 2
 PLAYER_BASE_HEALTH: int = 3
 
+ENEMY_SHOOTER_TURN_RATE: int = int(GAME_SPEED / 3) * 3
+ENEMY_SHOOTER_ATTACK_RATE: int = int(GAME_SPEED / 4) * 3
+
 
 class SpriteBitmap:
     xDimension: int
     yDimension: int
     data: bytearray
 
-    def __init__(self, xDimension: int, yDimension: int, data: bytearray):
+    def __init__(self, xDimension: int, yDimension: int, data: bytearray) -> None:
         self.xDimension = xDimension
         self.yDimension = yDimension
         self.data = data
@@ -33,6 +36,12 @@ class SpriteBitmaps:
         Down = SpriteBitmap(8, 8, bytearray([0, 0, 4, 127, 4, 0, 0, 0]))
         Left = SpriteBitmap(8, 8, bytearray([0, 16, 16, 16, 16, 56, 16, 16]))
         Right = SpriteBitmap(8, 8, bytearray([16, 16, 56, 16, 16, 16, 16, 0]))
+
+    class EnemyShooter:
+        Up = SpriteBitmap(8, 8, bytearray([0, 252, 23, 2, 2, 23, 252, 0]))
+        Down = SpriteBitmap(8, 8, bytearray([0, 252, 86, 162, 162, 86, 252, 0]))
+        Left = SpriteBitmap(8, 8, bytearray([40, 236, 6, 18, 18, 6, 252, 0]))
+        Right = SpriteBitmap(8, 8, bytearray([0, 252, 6, 18, 18, 6, 236, 40]))
 
 
 class Direction:
@@ -101,7 +110,7 @@ class Player(Drawable):
 
     __directions_to_sprite__: dict[Direction, thumby.Sprite]
 
-    def __init__(self, xPos: int, yPos: int, facing: Direction):
+    def __init__(self, xPos: int, yPos: int, facing: Direction) -> None:
         self.xPos = xPos
         self.yPos = yPos
         self.facing = facing
@@ -153,6 +162,57 @@ class Player(Drawable):
         self._attack_cooldown = PLAYER_ATTACK_COOLDOWN
 
 
+class EnemyShooter(Drawable):
+    xPos: int
+    yPos: int
+    facing: Direction
+
+    _attack_cooldown: int
+    _turn_cooldown: int
+
+    __directions_to_sprite__: dict[Direction, thumby.Sprite]
+
+    def __init__(self, xPos: int, yPos: int, facing: Direction) -> None:
+        self.xPos = xPos
+        self.yPos = yPos
+        self.facing = facing
+
+        self.__directions_to_sprite__ = {
+            Directions.Up: SpriteBitmaps.EnemyShooter.Up.to_sprite(),
+            Directions.Down: SpriteBitmaps.EnemyShooter.Down.to_sprite(),
+            Directions.Left: SpriteBitmaps.EnemyShooter.Left.to_sprite(),
+            Directions.Right: SpriteBitmaps.EnemyShooter.Right.to_sprite(),
+        }
+        self._sprite = self.__directions_to_sprite__[facing]
+        self._sprite.x = self.xPos
+        self._sprite.y = self.yPos
+
+        self._attack_cooldown = ENEMY_SHOOTER_ATTACK_RATE
+        self._turn_cooldown = ENEMY_SHOOTER_TURN_RATE
+
+    def step(self):
+        if self._attack_cooldown > 0:
+            self._attack_cooldown -= 1
+        else:
+            self.attack()
+            self._attack_cooldown = ENEMY_SHOOTER_ATTACK_RATE
+
+        if self._turn_cooldown > 0:
+            self._turn_cooldown -= 1
+        else:
+            self.turn()
+            self._turn_cooldown = ENEMY_SHOOTER_TURN_RATE
+
+    def attack(self):
+        pass
+
+    def turn(self):
+        self.facing = Directions.rotate_cw(self.facing)
+        self._sprite = self.__directions_to_sprite__[self.facing]
+        self._sprite.x = self.xPos
+        self._sprite.y = self.yPos
+
+
 class Sword(Drawable):
     xPos: int
     yPos: int
@@ -170,7 +230,7 @@ class Sword(Drawable):
         yPos: int,
         facing: Direction,
         lifetime: int = 8,
-    ):
+    ) -> None:
         self.xPos = xPos
         self.yPos = yPos
         self.facing = facing
@@ -214,6 +274,8 @@ start_y = int(thumby.display.height / 2) - int(player.height() / 2)
 player.xPos = start_x
 player.yPos = start_y
 
+enemy_shooter = EnemyShooter(0, 0, Directions.Right)
+
 swords: list[Sword] = []
 
 while True:
@@ -237,6 +299,9 @@ while True:
 
         if sword.expired():
             swords.remove(sword)
+
+    enemy_shooter.step()
+    enemy_shooter.draw()
 
     player.step()
     player.draw()
