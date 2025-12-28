@@ -38,7 +38,7 @@ class SpriteBitmaps:
 class Direction:
     __value__: int
 
-    def __init__(self, value: int):
+    def __init__(self, value: int) -> None:
         self.__value__ = value
 
 
@@ -47,6 +47,32 @@ class Directions:
     Down = Direction(2)
     Left = Direction(3)
     Right = Direction(4)
+
+    @classmethod
+    def rotate_cw(cls, direction: Direction) -> Direction:
+        if direction == Directions.Up:
+            return Directions.Right
+        if direction == Directions.Down:
+            return Directions.Left
+        if direction == Directions.Left:
+            return Directions.Up
+        if direction == Directions.Right:
+            return Directions.Down
+
+        raise Exception("Unknown direction")
+
+    @classmethod
+    def rotate_ccw(cls, direction: Direction) -> Direction:
+        if direction == Directions.Up:
+            return Directions.Left
+        if direction == Directions.Down:
+            return Directions.Right
+        if direction == Directions.Left:
+            return Directions.Down
+        if direction == Directions.Right:
+            return Directions.Up
+
+        raise Exception("Unknown direction")
 
 
 class Drawable:
