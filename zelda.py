@@ -5,10 +5,10 @@ GAME_SPEED: int = 60
 PLAYER_ATTACK_COOLDOWN: int = int(GAME_SPEED / 3)
 PLAYER_BASE_HEALTH: int = 3
 
-PROJECTILE_SWORD_LIFETIME: int = GAME_SPEED * 2
+PROJECTILE_LIFETIME: int = GAME_SPEED * 2
 SWORD_SIZE: int = 8
 
-ENEMY_SHOOTER_TURN_RATE: int = int(GAME_SPEED / 3) * 3
+ENEMY_SHOOTER_TURN_RATE: int = int(GAME_SPEED / 4) * 3
 ENEMY_SHOOTER_ATTACK_RATE: int = int(GAME_SPEED / 4) * 3
 
 
@@ -52,6 +52,8 @@ class SpriteBitmaps:
         Down = SpriteBitmap(8, 8, bytearray([0, 252, 86, 162, 162, 86, 252, 0]))
         Left = SpriteBitmap(8, 8, bytearray([40, 236, 6, 18, 18, 6, 252, 0]))
         Right = SpriteBitmap(8, 8, bytearray([0, 252, 6, 18, 18, 6, 236, 40]))
+
+    EnemyShooterProjectile: SpriteBitmap = SpriteBitmap(2, 2, bytearray([3, 3]))
 
 
 class Direction:
@@ -163,11 +165,9 @@ class Player(Drawable):
             return
 
         # sword shoots out at full health
-        lifetime = (
-            PROJECTILE_SWORD_LIFETIME if self.health == self.max_health else SWORD_SIZE
-        )
+        lifetime = PROJECTILE_LIFETIME if self.health == self.max_health else SWORD_SIZE
 
-        swords.append(Sword(self.xPos, self.yPos, self.facing, lifetime))
+        projectiles.append(Sword(self.xPos, self.yPos, self.facing, lifetime))
 
         self._attack_cooldown = PLAYER_ATTACK_COOLDOWN
 
@@ -198,7 +198,7 @@ class EnemyShooter(Drawable):
         self._sprite.y = self.yPos
 
         self._attack_cooldown = ENEMY_SHOOTER_ATTACK_RATE
-        self._turn_cooldown = ENEMY_SHOOTER_TURN_RATE
+        self._turn_cooldown = int(ENEMY_SHOOTER_TURN_RATE / 2)
 
     def step(self):
         if self._attack_cooldown > 0:
@@ -214,7 +214,7 @@ class EnemyShooter(Drawable):
             self._turn_cooldown = ENEMY_SHOOTER_TURN_RATE
 
     def attack(self):
-        pass
+        projectiles.append(EnemyShooterProjectile(self.xPos, self.yPos, self.facing))
 
     def turn(self):
         self.facing = Directions.rotate_cw(self.facing)
@@ -290,6 +290,19 @@ class Sword(Projectile):
         super(Sword, self).__init__(xPos, yPos, facing, sprite, lifetime)
 
 
+class EnemyShooterProjectile(Projectile):
+    def __init__(
+        self,
+        xPos: int,
+        yPos: int,
+        facing: Direction,
+    ):
+        sprite = SpriteBitmaps.EnemyShooterProjectile.to_sprite()
+        super(EnemyShooterProjectile, self).__init__(
+            xPos, yPos, facing, sprite, PROJECTILE_LIFETIME
+        )
+
+
 ######################### Main loop #########################
 thumby.display.setFPS(GAME_SPEED)
 
@@ -299,9 +312,9 @@ start_y = int(thumby.display.height / 2) - int(player.height() / 2)
 player.xPos = start_x
 player.yPos = start_y
 
-enemy_shooter = EnemyShooter(0, 0, Directions.Right)
+enemy_shooter = EnemyShooter(start_x - 10, start_y, Directions.Right)
 
-swords: list[Sword] = []
+projectiles: list[Projectile] = []
 
 while True:
     t0 = time.ticks_ms()  # Get time (ms)
@@ -318,12 +331,12 @@ while True:
     if thumby.buttonA.pressed():
         player.attack()
 
-    for sword in swords:
-        sword.step()
-        sword.draw()
+    for projectile in projectiles:
+        projectile.step()
+        projectile.draw()
 
-        if sword.expired():
-            swords.remove(sword)
+        if projectile.expired():
+            projectiles.remove(projectile)
 
     enemy_shooter.step()
     enemy_shooter.draw()
