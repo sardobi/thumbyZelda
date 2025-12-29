@@ -3,8 +3,10 @@ import thumby
 
 GAME_SPEED: int = 60
 PLAYER_ATTACK_COOLDOWN: int = int(GAME_SPEED / 3)
-PROJECTILE_SWORD_LIFETIME: int = GAME_SPEED * 2
 PLAYER_BASE_HEALTH: int = 3
+
+PROJECTILE_SWORD_LIFETIME: int = GAME_SPEED * 2
+SWORD_SIZE: int = 8
 
 ENEMY_SHOOTER_TURN_RATE: int = int(GAME_SPEED / 3) * 3
 ENEMY_SHOOTER_ATTACK_RATE: int = int(GAME_SPEED / 4) * 3
@@ -32,10 +34,18 @@ class SpriteBitmaps:
         Right = SpriteBitmap(8, 8, bytearray([0, 247, 137, 157, 157, 238, 4, 0]))
 
     class Sword:
-        Up = SpriteBitmap(8, 8, bytearray([0, 0, 0, 32, 254, 32, 0, 0]))
-        Down = SpriteBitmap(8, 8, bytearray([0, 0, 4, 127, 4, 0, 0, 0]))
-        Left = SpriteBitmap(8, 8, bytearray([0, 16, 16, 16, 16, 56, 16, 16]))
-        Right = SpriteBitmap(8, 8, bytearray([16, 16, 56, 16, 16, 16, 16, 0]))
+        Up = SpriteBitmap(
+            SWORD_SIZE, SWORD_SIZE, bytearray([0, 0, 0, 32, 254, 32, 0, 0])
+        )
+        Down = SpriteBitmap(
+            SWORD_SIZE, SWORD_SIZE, bytearray([0, 0, 4, 127, 4, 0, 0, 0])
+        )
+        Left = SpriteBitmap(
+            SWORD_SIZE, SWORD_SIZE, bytearray([0, 16, 16, 16, 16, 56, 16, 16])
+        )
+        Right = SpriteBitmap(
+            SWORD_SIZE, SWORD_SIZE, bytearray([16, 16, 56, 16, 16, 16, 16, 0])
+        )
 
     class EnemyShooter:
         Up = SpriteBitmap(8, 8, bytearray([0, 252, 23, 2, 2, 23, 252, 0]))
@@ -152,12 +162,12 @@ class Player(Drawable):
         if self._attack_cooldown > 0:
             return
 
-        if self.health == self.max_health:
-            swords.append(
-                Sword(self.xPos, self.yPos, self.facing, PROJECTILE_SWORD_LIFETIME)
-            )
-        else:
-            swords.append(Sword(self.xPos, self.yPos, self.facing))
+        # sword shoots out at full health
+        lifetime = (
+            PROJECTILE_SWORD_LIFETIME if self.health == self.max_health else SWORD_SIZE
+        )
+
+        swords.append(Sword(self.xPos, self.yPos, self.facing, lifetime))
 
         self._attack_cooldown = PLAYER_ATTACK_COOLDOWN
 
@@ -213,7 +223,7 @@ class EnemyShooter(Drawable):
         self._sprite.y = self.yPos
 
 
-class Sword(Drawable):
+class Projectile(Drawable):
     xPos: int
     yPos: int
     facing: Direction
@@ -222,27 +232,20 @@ class Sword(Drawable):
     _move_speed: int = 1
     _time_alive: int = 0
 
-    __directions_to_sprite__: dict[Direction, thumby.Sprite]
-
     def __init__(
         self,
         xPos: int,
         yPos: int,
         facing: Direction,
-        lifetime: int = 8,
+        sprite: thumby.Sprite,
+        lifetime: int,
     ) -> None:
         self.xPos = xPos
         self.yPos = yPos
         self.facing = facing
         self.lifetime = lifetime
 
-        self.__directions_to_sprite__ = {
-            Directions.Up: SpriteBitmaps.Sword.Up.to_sprite(),
-            Directions.Down: SpriteBitmaps.Sword.Down.to_sprite(),
-            Directions.Left: SpriteBitmaps.Sword.Left.to_sprite(),
-            Directions.Right: SpriteBitmaps.Sword.Right.to_sprite(),
-        }
-        self._sprite = self.__directions_to_sprite__[facing]
+        self._sprite = sprite
         self._sprite.x = self.xPos
         self._sprite.y = self.yPos
 
@@ -263,6 +266,28 @@ class Sword(Drawable):
 
         self._sprite.x = self.xPos
         self._sprite.y = self.yPos
+
+
+class Sword(Projectile):
+    def __init__(
+        self,
+        xPos: int,
+        yPos: int,
+        facing: Direction,
+        lifetime: int,
+    ) -> None:
+        if facing == Directions.Up:
+            sprite = SpriteBitmaps.Sword.Up.to_sprite()
+        elif facing == Directions.Down:
+            sprite = SpriteBitmaps.Sword.Down.to_sprite()
+        elif facing == Directions.Left:
+            sprite = SpriteBitmaps.Sword.Left.to_sprite()
+        elif facing == Directions.Right:
+            sprite = SpriteBitmaps.Sword.Right.to_sprite()
+        else:
+            raise Exception("Unknown direction")
+
+        super(Sword, self).__init__(xPos, yPos, facing, sprite, lifetime)
 
 
 ######################### Main loop #########################
