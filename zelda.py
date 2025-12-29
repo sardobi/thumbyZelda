@@ -8,6 +8,9 @@ PLAYER_BASE_HEALTH: int = 3
 PROJECTILE_LIFETIME: int = GAME_SPEED * 2
 SWORD_SIZE: int = 8
 
+# Standard width and height of a sprite
+SPRITE_DIMS: int = 8
+
 ENEMY_SHOOTER_TURN_RATE: int = int(GAME_SPEED / 4) * 3
 ENEMY_SHOOTER_ATTACK_RATE: int = int(GAME_SPEED / 4) * 3
 
@@ -339,11 +342,9 @@ class EnemyShooterProjectile(Projectile):
 ######################### Main loop #########################
 thumby.display.setFPS(GAME_SPEED)
 
-player = Player(0, 0, Directions.Down)
-start_x = int((thumby.display.width / 2) - int(player.width() / 2))
-start_y = int(thumby.display.height / 2) - int(player.height() / 2)
-player.xPos = start_x
-player.yPos = start_y
+start_x = int((thumby.display.width / 2) - int(SPRITE_DIMS / 2))
+start_y = int(thumby.display.height / 2) - int(SPRITE_DIMS / 2)
+player = Player(start_x, start_y, Directions.Down)
 
 enemy_shooter = EnemyShooter(start_x - 10, start_y, Directions.Right)
 
