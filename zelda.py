@@ -12,48 +12,81 @@ ENEMY_SHOOTER_TURN_RATE: int = int(GAME_SPEED / 4) * 3
 ENEMY_SHOOTER_ATTACK_RATE: int = int(GAME_SPEED / 4) * 3
 
 
-class SpriteBitmap:
-    xDimension: int
-    yDimension: int
-    data: bytearray
-
-    def __init__(self, xDimension: int, yDimension: int, data: bytearray) -> None:
-        self.xDimension = xDimension
-        self.yDimension = yDimension
-        self.data = data
-
-    def to_sprite(self) -> thumby.Sprite:
-        return thumby.Sprite(self.xDimension, self.yDimension, self.data)
-
-
-class SpriteBitmaps:
+class Sprites:
     class Link:
-        Up = SpriteBitmap(8, 8, bytearray([98, 244, 138, 145, 145, 138, 244, 98]))
-        Down = SpriteBitmap(8, 8, bytearray([98, 244, 142, 157, 157, 142, 244, 98]))
-        Left = SpriteBitmap(8, 8, bytearray([0, 4, 238, 157, 157, 137, 247, 0]))
-        Right = SpriteBitmap(8, 8, bytearray([0, 247, 137, 157, 157, 238, 4, 0]))
+        @classmethod
+        def up(cls, x: int, y: int) -> thumby.Sprite:
+            return thumby.Sprite(
+                8, 8, bytearray([98, 244, 138, 145, 145, 138, 244, 98]), x, y, 0
+            )
+
+        @classmethod
+        def down(cls, x: int, y: int) -> thumby.Sprite:
+            return thumby.Sprite(
+                8, 8, bytearray([98, 244, 142, 157, 157, 142, 244, 98]), x, y, 0
+            )
+
+        @classmethod
+        def left(cls, x: int, y: int) -> thumby.Sprite:
+            return thumby.Sprite(
+                8, 8, bytearray([0, 4, 238, 157, 157, 137, 247, 0]), x, y, 0
+            )
+
+        @classmethod
+        def right(cls, x: int, y: int) -> thumby.Sprite:
+            return thumby.Sprite(
+                8, 8, bytearray([0, 247, 137, 157, 157, 238, 4, 0]), x, y, 0
+            )
 
     class Sword:
-        Up = SpriteBitmap(
-            SWORD_SIZE, SWORD_SIZE, bytearray([0, 0, 0, 32, 254, 32, 0, 0])
-        )
-        Down = SpriteBitmap(
-            SWORD_SIZE, SWORD_SIZE, bytearray([0, 0, 4, 127, 4, 0, 0, 0])
-        )
-        Left = SpriteBitmap(
-            SWORD_SIZE, SWORD_SIZE, bytearray([0, 16, 16, 16, 16, 56, 16, 16])
-        )
-        Right = SpriteBitmap(
-            SWORD_SIZE, SWORD_SIZE, bytearray([16, 16, 56, 16, 16, 16, 16, 0])
-        )
+        @classmethod
+        def up(cls, x: int, y: int) -> thumby.Sprite:
+            return thumby.Sprite(8, 8, bytearray([0, 0, 0, 32, 254, 32, 0, 0]), x, y, 0)
+
+        @classmethod
+        def down(cls, x: int, y: int) -> thumby.Sprite:
+            return thumby.Sprite(8, 8, bytearray([0, 0, 4, 127, 4, 0, 0, 0]), x, y, 0)
+
+        @classmethod
+        def left(cls, x: int, y: int) -> thumby.Sprite:
+            return thumby.Sprite(
+                8, 8, bytearray([0, 16, 16, 16, 16, 56, 16, 16]), x, y, 0
+            )
+
+        @classmethod
+        def right(cls, x: int, y: int) -> thumby.Sprite:
+            return thumby.Sprite(
+                8, 8, bytearray([16, 16, 56, 16, 16, 16, 16, 0]), x, y, 0
+            )
 
     class EnemyShooter:
-        Up = SpriteBitmap(8, 8, bytearray([0, 252, 23, 2, 2, 23, 252, 0]))
-        Down = SpriteBitmap(8, 8, bytearray([0, 252, 86, 162, 162, 86, 252, 0]))
-        Left = SpriteBitmap(8, 8, bytearray([40, 236, 6, 18, 18, 6, 252, 0]))
-        Right = SpriteBitmap(8, 8, bytearray([0, 252, 6, 18, 18, 6, 236, 40]))
+        @classmethod
+        def up(cls, x: int, y: int) -> thumby.Sprite:
+            return thumby.Sprite(
+                8, 8, bytearray([0, 252, 23, 2, 2, 23, 252, 0]), x, y, 0
+            )
 
-    EnemyShooterProjectile: SpriteBitmap = SpriteBitmap(2, 2, bytearray([3, 3]))
+        @classmethod
+        def down(cls, x: int, y: int) -> thumby.Sprite:
+            return thumby.Sprite(
+                8, 8, bytearray([0, 252, 86, 162, 162, 86, 252, 0]), x, y, 0
+            )
+
+        @classmethod
+        def left(cls, x: int, y: int) -> thumby.Sprite:
+            return thumby.Sprite(
+                8, 8, bytearray([40, 236, 6, 18, 18, 6, 252, 0]), x, y, 0
+            )
+
+        @classmethod
+        def right(cls, x: int, y: int) -> thumby.Sprite:
+            return thumby.Sprite(
+                8, 8, bytearray([0, 252, 6, 18, 18, 6, 236, 40]), x, y, 0
+            )
+
+    @classmethod
+    def enemy_shooter_projectile(cls, x: int, y: int) -> thumby.Sprite:
+        return thumby.Sprite(8, 8, bytearray([0, 0, 0, 24, 24, 0, 0, 0]), x, y, 0)
 
 
 class Direction:
@@ -130,10 +163,10 @@ class Player(Drawable):
         self.max_health = PLAYER_BASE_HEALTH
 
         self.__directions_to_sprite__ = {
-            Directions.Up: SpriteBitmaps.Link.Up.to_sprite(),
-            Directions.Down: SpriteBitmaps.Link.Down.to_sprite(),
-            Directions.Left: SpriteBitmaps.Link.Left.to_sprite(),
-            Directions.Right: SpriteBitmaps.Link.Right.to_sprite(),
+            Directions.Up: Sprites.Link.up(xPos, yPos),
+            Directions.Down: Sprites.Link.down(xPos, yPos),
+            Directions.Left: Sprites.Link.left(xPos, yPos),
+            Directions.Right: Sprites.Link.right(xPos, yPos),
         }
         self._sprite = self.__directions_to_sprite__[facing]
         self._sprite.x = self.xPos
@@ -188,10 +221,10 @@ class EnemyShooter(Drawable):
         self.facing = facing
 
         self.__directions_to_sprite__ = {
-            Directions.Up: SpriteBitmaps.EnemyShooter.Up.to_sprite(),
-            Directions.Down: SpriteBitmaps.EnemyShooter.Down.to_sprite(),
-            Directions.Left: SpriteBitmaps.EnemyShooter.Left.to_sprite(),
-            Directions.Right: SpriteBitmaps.EnemyShooter.Right.to_sprite(),
+            Directions.Up: Sprites.EnemyShooter.up(xPos, yPos),
+            Directions.Down: Sprites.EnemyShooter.down(xPos, yPos),
+            Directions.Left: Sprites.EnemyShooter.left(xPos, yPos),
+            Directions.Right: Sprites.EnemyShooter.right(xPos, yPos),
         }
         self._sprite = self.__directions_to_sprite__[facing]
         self._sprite.x = self.xPos
@@ -277,13 +310,13 @@ class Sword(Projectile):
         lifetime: int,
     ) -> None:
         if facing == Directions.Up:
-            sprite = SpriteBitmaps.Sword.Up.to_sprite()
+            sprite = Sprites.Sword.up(xPos, yPos)
         elif facing == Directions.Down:
-            sprite = SpriteBitmaps.Sword.Down.to_sprite()
+            sprite = Sprites.Sword.down(xPos, yPos)
         elif facing == Directions.Left:
-            sprite = SpriteBitmaps.Sword.Left.to_sprite()
+            sprite = Sprites.Sword.left(xPos, yPos)
         elif facing == Directions.Right:
-            sprite = SpriteBitmaps.Sword.Right.to_sprite()
+            sprite = Sprites.Sword.right(xPos, yPos)
         else:
             raise Exception("Unknown direction")
 
@@ -297,7 +330,7 @@ class EnemyShooterProjectile(Projectile):
         yPos: int,
         facing: Direction,
     ):
-        sprite = SpriteBitmaps.EnemyShooterProjectile.to_sprite()
+        sprite = Sprites.enemy_shooter_projectile(xPos, yPos)
         super(EnemyShooterProjectile, self).__init__(
             xPos, yPos, facing, sprite, PROJECTILE_LIFETIME
         )
