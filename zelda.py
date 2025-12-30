@@ -1,6 +1,8 @@
 import time
 import thumby
 
+from abc import ABC, abstractmethod
+
 GAME_SPEED: int = 60
 PLAYER_ATTACK_COOLDOWN: int = int(GAME_SPEED / 3)
 PLAYER_BASE_HEALTH: int = 3
@@ -132,7 +134,7 @@ class Directions:
         raise Exception("Unknown direction")
 
 
-class Drawable:
+class Drawable(ABC):
     _sprite: thumby.Sprite
 
     def width(self) -> int:
@@ -145,7 +147,25 @@ class Drawable:
         thumby.display.drawSprite(self._sprite)
 
 
-class Player(Drawable):
+class Dynamic(ABC):
+    @abstractmethod
+    def step(self, game: "Game") -> None:
+        """
+        Perform per-frame processing.
+
+        :param game: Game state
+        """
+        pass
+
+    @abstractmethod
+    def expired(self) -> bool:
+        """
+        Whether this Dynamic should be cleaned up
+        """
+        pass
+
+
+class Player(Drawable, Dynamic):
     xPos: int
     yPos: int
     facing: Direction
@@ -175,9 +195,22 @@ class Player(Drawable):
         self._sprite.x = self.xPos
         self._sprite.y = self.yPos
 
-    def step(self):
+    def step(self, game: "Game"):
         if self._attack_cooldown > 0:
             self._attack_cooldown -= 1
+
+        if thumby.buttonU.pressed():
+            self.move(Directions.Up)
+        if thumby.buttonD.pressed():
+            self.move(Directions.Down)
+        if thumby.buttonL.pressed():
+            self.move(Directions.Left)
+        if thumby.buttonR.pressed():
+            self.move(Directions.Right)
+        if thumby.buttonA.pressed():
+            self.attack(game)
+
+        self.draw()
 
     def move(self, direction: Direction):
         if direction == Directions.Up:
@@ -196,19 +229,22 @@ class Player(Drawable):
         self._sprite.y = self.yPos
         self.facing = direction
 
-    def attack(self):
+    def attack(self, game: "Game"):
         if self._attack_cooldown > 0:
             return
 
         # sword shoots out at full health
         lifetime = PROJECTILE_LIFETIME if self.health == self.max_health else SWORD_SIZE
 
-        projectiles.append(Sword(self.xPos, self.yPos, self.facing, lifetime))
+        game.dynamics.add(Sword(self.xPos, self.yPos, self.facing, lifetime))
 
         self._attack_cooldown = PLAYER_ATTACK_COOLDOWN
 
+    def expired(self) -> bool:
+        return False
 
-class EnemyShooter(Drawable):
+
+class EnemyShooter(Drawable, Dynamic):
     xPos: int
     yPos: int
     facing: Direction
@@ -236,11 +272,11 @@ class EnemyShooter(Drawable):
         self._attack_cooldown = ENEMY_SHOOTER_ATTACK_RATE
         self._turn_cooldown = int(ENEMY_SHOOTER_TURN_RATE / 2)
 
-    def step(self):
+    def step(self, game: "Game"):
         if self._attack_cooldown > 0:
             self._attack_cooldown -= 1
         else:
-            self.attack()
+            self.attack(game)
             self._attack_cooldown = ENEMY_SHOOTER_ATTACK_RATE
 
         if self._turn_cooldown > 0:
@@ -249,8 +285,10 @@ class EnemyShooter(Drawable):
             self.turn()
             self._turn_cooldown = ENEMY_SHOOTER_TURN_RATE
 
-    def attack(self):
-        projectiles.append(EnemyShooterProjectile(self.xPos, self.yPos, self.facing))
+        self.draw()
+
+    def attack(self, game: "Game"):
+        game.dynamics.add(EnemyShooterProjectile(self.xPos, self.yPos, self.facing))
 
     def turn(self):
         self.facing = Directions.rotate_cw(self.facing)
@@ -258,8 +296,11 @@ class EnemyShooter(Drawable):
         self._sprite.x = self.xPos
         self._sprite.y = self.yPos
 
+    def expired(self) -> bool:
+        return False
 
-class Projectile(Drawable):
+
+class Projectile(Drawable, Dynamic):
     xPos: int
     yPos: int
     facing: Direction
@@ -288,7 +329,7 @@ class Projectile(Drawable):
     def expired(self) -> bool:
         return self._time_alive > self.lifetime
 
-    def step(self):
+    def step(self, game: "Game"):
         self._time_alive += 1
 
         if self.facing == Directions.Up:
@@ -302,6 +343,8 @@ class Projectile(Drawable):
 
         self._sprite.x = self.xPos
         self._sprite.y = self.yPos
+
+        self.draw()
 
 
 class Sword(Projectile):
@@ -339,42 +382,36 @@ class EnemyShooterProjectile(Projectile):
         )
 
 
+class Game:
+    dynamics: set[Dynamic]
+
+    def run(self):
+        """
+        Main entrypoint for the game
+        """
+        thumby.display.setFPS(GAME_SPEED)
+
+        start_x = int((thumby.display.width / 2) - int(SPRITE_DIMS / 2))
+        start_y = int(thumby.display.height / 2) - int(SPRITE_DIMS / 2)
+
+        player = Player(start_x, start_y, Directions.Down)
+        self.dynamics.add(player)
+
+        enemy_shooter = EnemyShooter(start_x - 10, start_y, Directions.Right)
+        self.dynamics.add(enemy_shooter)
+
+        while True:
+            thumby.display.fill(0)  # Fill canvas to black
+
+            for dynamic in self.dynamics:
+                dynamic.step(self)
+
+                if dynamic.expired():
+                    self.dynamics.remove(dynamic)
+
+            thumby.display.update()
+
+
 ######################### Main loop #########################
-thumby.display.setFPS(GAME_SPEED)
-
-start_x = int((thumby.display.width / 2) - int(SPRITE_DIMS / 2))
-start_y = int(thumby.display.height / 2) - int(SPRITE_DIMS / 2)
-player = Player(start_x, start_y, Directions.Down)
-
-enemy_shooter = EnemyShooter(start_x - 10, start_y, Directions.Right)
-
-projectiles: list[Projectile] = []
-
-while True:
-    t0 = time.ticks_ms()  # Get time (ms)
-    thumby.display.fill(0)  # Fill canvas to black
-
-    if thumby.buttonU.pressed():
-        player.move(Directions.Up)
-    if thumby.buttonD.pressed():
-        player.move(Directions.Down)
-    if thumby.buttonL.pressed():
-        player.move(Directions.Left)
-    if thumby.buttonR.pressed():
-        player.move(Directions.Right)
-    if thumby.buttonA.pressed():
-        player.attack()
-
-    for projectile in projectiles:
-        projectile.step()
-        projectile.draw()
-
-        if projectile.expired():
-            projectiles.remove(projectile)
-
-    enemy_shooter.step()
-    enemy_shooter.draw()
-
-    player.step()
-    player.draw()
-    thumby.display.update()
+game = Game()
+game.run()
