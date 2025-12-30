@@ -1,8 +1,6 @@
 import time
 import thumby
 
-from abc import ABC, abstractmethod
-
 GAME_SPEED: int = 60
 PLAYER_ATTACK_COOLDOWN: int = int(GAME_SPEED / 3)
 PLAYER_BASE_HEALTH: int = 3
@@ -134,7 +132,7 @@ class Directions:
         raise Exception("Unknown direction")
 
 
-class Drawable(ABC):
+class Drawable:
     _sprite: thumby.Sprite
 
     def width(self) -> int:
@@ -147,8 +145,7 @@ class Drawable(ABC):
         thumby.display.drawSprite(self._sprite)
 
 
-class Dynamic(ABC):
-    @abstractmethod
+class Dynamic:
     def step(self, game: "Game") -> None:
         """
         Perform per-frame processing.
@@ -157,12 +154,11 @@ class Dynamic(ABC):
         """
         pass
 
-    @abstractmethod
     def expired(self) -> bool:
         """
         Whether this Dynamic should be cleaned up
         """
-        pass
+        return False
 
 
 class Player(Drawable, Dynamic):
@@ -384,6 +380,9 @@ class EnemyShooterProjectile(Projectile):
 
 class Game:
     dynamics: set[Dynamic]
+
+    def __init__(self) -> None:
+        self.dynamics = set()
 
     def run(self):
         """
