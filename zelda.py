@@ -146,6 +146,11 @@ class Drawable:
 
 
 class Dynamic:
+    _expired: bool
+
+    def __init__(self) -> None:
+        self._expired = False
+
     def step(self, game: "Game") -> None:
         """
         Perform per-frame processing.
@@ -158,7 +163,13 @@ class Dynamic:
         """
         Whether this Dynamic should be cleaned up
         """
-        return False
+        return self._expired
+
+    def expire(self) -> None:
+        """
+        Mark this Dynamic as expired
+        """
+        self._expired = True
 
 
 class Player(Drawable, Dynamic):
@@ -175,6 +186,8 @@ class Player(Drawable, Dynamic):
     __directions_to_sprite__: dict[Direction, thumby.Sprite]
 
     def __init__(self, xPos: int, yPos: int, facing: Direction) -> None:
+        Dynamic.__init__(self)
+
         self.xPos = xPos
         self.yPos = yPos
         self.facing = facing
@@ -206,6 +219,22 @@ class Player(Drawable, Dynamic):
         if thumby.buttonA.pressed():
             self.attack(game)
 
+        enemy_projectiles = {
+            dynamic
+            for dynamic in game.dynamics
+            if isinstance(dynamic, EnemyShooterProjectile)
+        }
+        colliding_projectiles = {
+            projectile
+            for projectile in enemy_projectiles
+            if projectile._sprite.x
+            in range(self._sprite.x, self._sprite.x + self._sprite.width)
+            and projectile._sprite.y
+            in range(self._sprite.y, self._sprite.y + self._sprite.height)
+        }
+        for projectile in colliding_projectiles:
+            projectile.expire()
+
         self.draw()
 
     def move(self, direction: Direction):
@@ -236,9 +265,6 @@ class Player(Drawable, Dynamic):
 
         self._attack_cooldown = PLAYER_ATTACK_COOLDOWN
 
-    def expired(self) -> bool:
-        return False
-
 
 class EnemyShooter(Drawable, Dynamic):
     xPos: int
@@ -251,6 +277,8 @@ class EnemyShooter(Drawable, Dynamic):
     __directions_to_sprite__: dict[Direction, thumby.Sprite]
 
     def __init__(self, xPos: int, yPos: int, facing: Direction) -> None:
+        Dynamic.__init__(self)
+
         self.xPos = xPos
         self.yPos = yPos
         self.facing = facing
@@ -292,9 +320,6 @@ class EnemyShooter(Drawable, Dynamic):
         self._sprite.x = self.xPos
         self._sprite.y = self.yPos
 
-    def expired(self) -> bool:
-        return False
-
 
 class Projectile(Drawable, Dynamic):
     xPos: int
@@ -313,6 +338,8 @@ class Projectile(Drawable, Dynamic):
         sprite: thumby.Sprite,
         lifetime: int,
     ) -> None:
+        Dynamic.__init__(self)
+
         self.xPos = xPos
         self.yPos = yPos
         self.facing = facing
@@ -323,7 +350,7 @@ class Projectile(Drawable, Dynamic):
         self._sprite.y = self.yPos
 
     def expired(self) -> bool:
-        return self._time_alive > self.lifetime
+        return Dynamic.expired(self) or self._time_alive > self.lifetime
 
     def step(self, game: "Game"):
         self._time_alive += 1
@@ -362,7 +389,7 @@ class Sword(Projectile):
         else:
             raise Exception("Unknown direction")
 
-        super(Sword, self).__init__(xPos, yPos, facing, sprite, lifetime)
+        Projectile.__init__(self, xPos, yPos, facing, sprite, lifetime)
 
 
 class EnemyShooterProjectile(Projectile):
@@ -373,9 +400,7 @@ class EnemyShooterProjectile(Projectile):
         facing: Direction,
     ):
         sprite = Sprites.enemy_shooter_projectile(xPos, yPos)
-        super(EnemyShooterProjectile, self).__init__(
-            xPos, yPos, facing, sprite, PROJECTILE_LIFETIME
-        )
+        Projectile.__init__(self, xPos, yPos, facing, sprite, PROJECTILE_LIFETIME)
 
 
 class Game:
@@ -403,10 +428,10 @@ class Game:
             thumby.display.fill(0)  # Fill canvas to black
 
             for dynamic in self.dynamics:
-                dynamic.step(self)
-
                 if dynamic.expired():
                     self.dynamics.remove(dynamic)
+
+                dynamic.step(self)
 
             thumby.display.update()
 
