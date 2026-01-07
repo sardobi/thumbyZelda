@@ -1,5 +1,10 @@
-import time
 import thumby
+
+import sys
+
+# necessary to allow other files to be imported when executed by Thumby
+sys.path.append("/Games/Zelda")
+import sprites
 
 GAME_SPEED: int = 60
 PLAYER_ATTACK_COOLDOWN: int = int(GAME_SPEED / 3)
