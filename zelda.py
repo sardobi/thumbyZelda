@@ -321,8 +321,8 @@ class Player(Drawable, Dynamic, Positional):
 
 
 class EnemyShooter(Drawable, Dynamic, Positional):
-    xPos: int
-    yPos: int
+    x_pos: int
+    y_pos: int
     facing: Direction
 
     _attack_cooldown: int
@@ -334,8 +334,8 @@ class EnemyShooter(Drawable, Dynamic, Positional):
         Dynamic.__init__(self)
         Positional.__init__(self, x_pos, y_pos)
 
-        self.xPos = x_pos
-        self.yPos = y_pos
+        self.x_pos = x_pos
+        self.y_pos = y_pos
         self.facing = facing
 
         self.__directions_to_sprite__ = {
@@ -345,8 +345,8 @@ class EnemyShooter(Drawable, Dynamic, Positional):
             Directions.Right: Sprites.EnemyShooter.right(x_pos, y_pos),
         }
         self._sprite = self.__directions_to_sprite__[facing]
-        self._sprite.x = self.xPos
-        self._sprite.y = self.yPos
+        self._sprite.x = self.x_pos
+        self._sprite.y = self.y_pos
 
         self._attack_cooldown = ENEMY_SHOOTER_ATTACK_RATE
         self._turn_cooldown = int(ENEMY_SHOOTER_TURN_RATE / 2)
@@ -364,23 +364,41 @@ class EnemyShooter(Drawable, Dynamic, Positional):
             self.turn()
             self._turn_cooldown = ENEMY_SHOOTER_TURN_RATE
 
+        self.detect_collisions(game)
         self.draw()
 
     def attack(self, game: "Game"):
-        game.dynamics.add(EnemyShooterProjectile(self.xPos, self.yPos, self.facing))
+        game.dynamics.add(EnemyShooterProjectile(self.x_pos, self.y_pos, self.facing))
 
     def turn(self):
         self.facing = Directions.rotate_cw(self.facing)
         self._sprite = self.__directions_to_sprite__[self.facing]
-        self._sprite.x = self.xPos
-        self._sprite.y = self.yPos
+        self._sprite.x = self.x_pos
+        self._sprite.y = self.y_pos
+
+    def detect_collisions(self, game: "Game"):
+        sword_projectiles = {
+            dynamic for dynamic in game.dynamics if isinstance(dynamic, Sword)
+        }
+
+        colliding_projectiles = {
+            projectile
+            for projectile in sword_projectiles
+            if projectile.hitbox().overlaps(self.hitbox())
+        }
+
+        for sword in colliding_projectiles:
+            sword.expire()
+
+        if len(colliding_projectiles) > 0:
+            self.expire()
 
     def hitbox(self) -> Hitbox:
         return Hitbox(
-            self.xPos,
-            self.xPos + self._sprite.width,
-            self.yPos,
-            self.yPos + self._sprite.height,
+            self.x_pos,
+            self.x_pos + self._sprite.width,
+            self.y_pos,
+            self.y_pos + self._sprite.height,
         )
 
 
@@ -435,34 +453,42 @@ class Projectile(Drawable, Dynamic, Positional):
 class Sword(Projectile):
     def __init__(
         self,
-        xPos: int,
-        yPos: int,
+        x_pos: int,
+        y_pos: int,
         facing: Direction,
         lifetime: int,
     ) -> None:
         if facing == Directions.Up:
-            sprite = Sprites.Sword.up(xPos, yPos)
+            sprite = Sprites.Sword.up(x_pos, y_pos)
         elif facing == Directions.Down:
-            sprite = Sprites.Sword.down(xPos, yPos)
+            sprite = Sprites.Sword.down(x_pos, y_pos)
         elif facing == Directions.Left:
-            sprite = Sprites.Sword.left(xPos, yPos)
+            sprite = Sprites.Sword.left(x_pos, y_pos)
         elif facing == Directions.Right:
-            sprite = Sprites.Sword.right(xPos, yPos)
+            sprite = Sprites.Sword.right(x_pos, y_pos)
         else:
             raise Exception("Unknown direction")
 
-        Projectile.__init__(self, xPos, yPos, facing, sprite, lifetime)
+        Projectile.__init__(self, x_pos, y_pos, facing, sprite, lifetime)
+
+    def hitbox(self) -> Hitbox:
+        return Hitbox(
+            self.x_pos,
+            self.x_pos + self._sprite.width,
+            self.y_pos,
+            self.y_pos + self._sprite.height,
+        )
 
 
 class EnemyShooterProjectile(Projectile):
     def __init__(
         self,
-        xPos: int,
-        yPos: int,
+        x_pos: int,
+        y_pos: int,
         facing: Direction,
     ):
-        sprite = Sprites.enemy_shooter_projectile(xPos, yPos)
-        Projectile.__init__(self, xPos, yPos, facing, sprite, PROJECTILE_LIFETIME)
+        sprite = Sprites.enemy_shooter_projectile(x_pos, y_pos)
+        Projectile.__init__(self, x_pos, y_pos, facing, sprite, PROJECTILE_LIFETIME)
 
     def hitbox(self) -> Hitbox:
         # smaller hitbox matching sprite
