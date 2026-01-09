@@ -7,11 +7,16 @@ PLAYER_BASE_HEALTH: int = 3
 PROJECTILE_LIFETIME: int = GAME_SPEED * 2
 SWORD_SIZE: int = 8
 
-# Standard width and height of a sprite
-SPRITE_DIMS: int = 8
+# width and height of the player
+PLAYER_SIZE: int = 8
 
+# width and height of enemy shooters
+ENEMY_SHOOTER_SIZE: int = 8
 ENEMY_SHOOTER_TURN_RATE: int = int(GAME_SPEED / 4) * 3
 ENEMY_SHOOTER_ATTACK_RATE: int = int(GAME_SPEED / 4) * 3
+
+# width and height of enemy shooter projectiles
+ENEMY_SHOOTER_PROJECTILE_SIZE: int = 2
 
 
 class Sprites:
@@ -149,37 +154,6 @@ class Drawable:
         thumby.display.drawSprite(self._sprite)
 
 
-class Hitbox:
-    # inclusive limits
-    x_min: int
-    x_max: int
-    y_min: int
-    y_max: int
-
-    def __init__(self, x_min: int, x_max: int, y_min: int, y_max: int) -> None:
-        self.x_max = x_max
-        self.x_min = x_min
-        self.y_max = y_max
-        self.y_min = y_min
-
-        if x_max < x_min or y_max < y_min:
-            raise Exception("bounds incorrect")
-
-    def contains_point(self, x: int, y: int) -> bool:
-        return x in range(self.x_min, self.x_max + 1) and y in range(
-            self.y_min, self.y_max + 1
-        )
-
-    def overlaps(self, other: "Hitbox") -> bool:
-        # no overlap if one of these inequalities is false
-        return (
-            self.x_min <= other.x_max
-            and self.y_min <= other.y_max
-            and self.x_max >= other.x_min
-            and self.y_max >= other.y_min
-        )
-
-
 class Positional:
     """
     An object with position and dimensions
@@ -187,16 +161,38 @@ class Positional:
 
     x_pos: int
     y_pos: int
+    width: int
+    height: int
 
-    def __init__(self, x_pos: int, y_pos: int) -> None:
+    def __init__(self, x_pos: int, y_pos: int, width: int, height: int) -> None:
         self.x_pos = x_pos
         self.y_pos = y_pos
+        self.width = width
+        self.height = height
 
-    def hitbox(self) -> Hitbox:
+    def x_min(self) -> int:
+        return self.x_pos
+
+    def y_min(self) -> int:
+        return self.y_pos
+
+    def x_max(self) -> int:
+        return self.x_pos + self.width
+
+    def y_max(self) -> int:
+        return self.y_pos + self.height
+
+    def overlaps(self, other: "Positional") -> bool:
         """
-        Get a Hitbox representing where collisions should be registered
+        Whether two Positionals overlap
         """
-        raise Exception("Not implemented")
+        # no overlap if one of these inequalities is false
+        return (
+            self.x_min() <= other.x_max()
+            and self.y_min() <= other.y_max()
+            and self.x_max() >= other.x_min()
+            and self.y_max() >= other.y_min()
+        )
 
 
 class Dynamic:
@@ -239,7 +235,7 @@ class Player(Drawable, Dynamic, Positional):
 
     def __init__(self, x_pos: int, y_pos: int, facing: Direction) -> None:
         Dynamic.__init__(self)
-        Positional.__init__(self, x_pos, y_pos)
+        Positional.__init__(self, x_pos, y_pos, PLAYER_SIZE, PLAYER_SIZE)
 
         self.facing = facing
         self.health = PLAYER_BASE_HEALTH
@@ -306,28 +302,17 @@ class Player(Drawable, Dynamic, Positional):
         self._attack_cooldown = PLAYER_ATTACK_COOLDOWN
 
     def detect_collisions(self, game: "Game"):
-        enemy_projectiles = {
-            dynamic
-            for dynamic in game.dynamics
-            if isinstance(dynamic, EnemyShooterProjectile)
-        }
-        colliding_projectiles = {
-            projectile
-            for projectile in enemy_projectiles
-            if projectile.hitbox().overlaps(self.hitbox())
-        }
+        for dynamic in game.dynamics:
+            if not isinstance(dynamic, EnemyShooterProjectile):
+                continue
 
-        for projectile in colliding_projectiles:
-            projectile.expire()
+            colliding = dynamic.overlaps(self)
+            if not colliding:
+                continue
+
+            # colliding with enemy projectile
+            dynamic.expire()
             self.health -= 1
-
-    def hitbox(self) -> Hitbox:
-        return Hitbox(
-            self.x_pos,
-            self.x_pos + self._sprite.width,
-            self.y_pos,
-            self.y_pos + self._sprite.height,
-        )
 
 
 class EnemyShooter(Drawable, Dynamic, Positional):
@@ -342,7 +327,7 @@ class EnemyShooter(Drawable, Dynamic, Positional):
 
     def __init__(self, x_pos: int, y_pos: int, facing: Direction) -> None:
         Dynamic.__init__(self)
-        Positional.__init__(self, x_pos, y_pos)
+        Positional.__init__(self, x_pos, y_pos, ENEMY_SHOOTER_SIZE, ENEMY_SHOOTER_SIZE)
 
         self.x_pos = x_pos
         self.y_pos = y_pos
@@ -387,29 +372,17 @@ class EnemyShooter(Drawable, Dynamic, Positional):
         self._sprite.y = self.y_pos
 
     def detect_collisions(self, game: "Game"):
-        sword_projectiles = {
-            dynamic for dynamic in game.dynamics if isinstance(dynamic, Sword)
-        }
+        for dynamic in game.dynamics:
+            if not isinstance(dynamic, Sword):
+                continue
 
-        colliding_projectiles = {
-            projectile
-            for projectile in sword_projectiles
-            if projectile.hitbox().overlaps(self.hitbox())
-        }
+            colliding = dynamic.overlaps(self)
+            if not colliding:
+                continue
 
-        for sword in colliding_projectiles:
-            sword.expire()
-
-        if len(colliding_projectiles) > 0:
+            # colliding with sword
+            dynamic.expire()
             self.expire()
-
-    def hitbox(self) -> Hitbox:
-        return Hitbox(
-            self.x_pos,
-            self.x_pos + self._sprite.width,
-            self.y_pos,
-            self.y_pos + self._sprite.height,
-        )
 
 
 class Projectile(Drawable, Dynamic, Positional):
@@ -425,12 +398,14 @@ class Projectile(Drawable, Dynamic, Positional):
         self,
         x_pos: int,
         y_pos: int,
+        width: int,
+        height: int,
         facing: Direction,
         sprite: thumby.Sprite,
         lifetime: int,
     ) -> None:
         Dynamic.__init__(self)
-        Positional.__init__(self, x_pos, y_pos)
+        Positional.__init__(self, x_pos, y_pos, width, height)
 
         self.facing = facing
         self.lifetime = lifetime
@@ -479,14 +454,8 @@ class Sword(Projectile):
         else:
             raise Exception("Unknown direction")
 
-        Projectile.__init__(self, x_pos, y_pos, facing, sprite, lifetime)
-
-    def hitbox(self) -> Hitbox:
-        return Hitbox(
-            self.x_pos,
-            self.x_pos + self._sprite.width,
-            self.y_pos,
-            self.y_pos + self._sprite.height,
+        Projectile.__init__(
+            self, x_pos, y_pos, SWORD_SIZE, SWORD_SIZE, facing, sprite, lifetime
         )
 
 
@@ -498,15 +467,15 @@ class EnemyShooterProjectile(Projectile):
         facing: Direction,
     ):
         sprite = Sprites.enemy_shooter_projectile(x_pos, y_pos)
-        Projectile.__init__(self, x_pos, y_pos, facing, sprite, PROJECTILE_LIFETIME)
-
-    def hitbox(self) -> Hitbox:
-        # smaller hitbox matching sprite
-        return Hitbox(
-            self.x_pos + 3,
-            self.x_pos + 5,
-            self.y_pos + 3,
-            self.y_pos + 5,
+        Projectile.__init__(
+            self,
+            x_pos,
+            y_pos,
+            ENEMY_SHOOTER_PROJECTILE_SIZE,
+            ENEMY_SHOOTER_PROJECTILE_SIZE,
+            facing,
+            sprite,
+            PROJECTILE_LIFETIME,
         )
 
 
@@ -547,8 +516,8 @@ class Game:
         self.dynamics = set()
         self.ui = UI()
 
-        start_x = int((thumby.display.width / 2) - int(SPRITE_DIMS / 2))
-        start_y = int(thumby.display.height / 2) - int(SPRITE_DIMS / 2)
+        start_x = int((thumby.display.width / 2) - int(PLAYER_SIZE / 2))
+        start_y = int(thumby.display.height / 2) - int(PLAYER_SIZE / 2)
 
         player = Player(start_x, start_y, Directions.Down)
         self.player = player
