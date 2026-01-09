@@ -415,11 +415,21 @@ class Projectile(Drawable, Dynamic, Positional):
         self._sprite.x = self.x_pos
         self._sprite.y = self.y_pos
 
-    def expired(self) -> bool:
-        return Dynamic.expired(self) or self._time_alive > self.lifetime
-
     def step(self, game: "Game"):
         self._time_alive += 1
+        if self._time_alive > self.lifetime:
+            self.expire()
+            return
+
+        # expire if off-screen
+        if (
+            self.x_max() < 0
+            or self.x_min() > thumby.display.width
+            or self.y_max() < 0
+            or self.y_min() > thumby.display.height
+        ):
+            self.expire()
+            return
 
         if self.facing == Directions.Up:
             self.y_pos -= self._move_speed
