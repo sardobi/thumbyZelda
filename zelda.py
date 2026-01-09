@@ -143,12 +143,6 @@ class Directions:
 class Drawable:
     _sprite: thumby.Sprite
 
-    def width(self) -> int:
-        return self._sprite.width
-
-    def height(self) -> int:
-        return self._sprite.height
-
     def draw(self):
         thumby.display.drawSprite(self._sprite)
 
@@ -169,28 +163,16 @@ class Positional:
         self.width = width
         self.height = height
 
-    def x_min(self) -> int:
-        return self.x_pos
-
-    def y_min(self) -> int:
-        return self.y_pos
-
-    def x_max(self) -> int:
-        return self.x_pos + self.width
-
-    def y_max(self) -> int:
-        return self.y_pos + self.height
-
     def overlaps(self, other: "Positional") -> bool:
         """
         Whether two Positionals overlap
         """
         # no overlap if one of these inequalities is false
         return (
-            self.x_min() <= other.x_max()
-            and self.y_min() <= other.y_max()
-            and self.x_max() >= other.x_min()
-            and self.y_max() >= other.y_min()
+            self.x_pos <= other.x_pos + other.width
+            and self.y_pos <= other.y_pos + other.height
+            and self.x_pos + self.width >= other.x_pos
+            and self.y_pos + self.height >= other.y_pos
         )
 
 
@@ -423,10 +405,10 @@ class Projectile(Drawable, Dynamic, Positional):
 
         # expire if off-screen
         if (
-            self.x_max() < 0
-            or self.x_min() > thumby.display.width
-            or self.y_max() < 0
-            or self.y_min() > thumby.display.height
+            self.x_pos + self.width < 0
+            or self.x_pos > thumby.display.width
+            or self.y_pos + self.height < 0
+            or self.y_pos > thumby.display.height
         ):
             self.expire()
             return
