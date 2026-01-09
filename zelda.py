@@ -534,8 +534,11 @@ class Game:
         self.player = player
         self.dynamics.append(player)
 
-        enemy_shooter = EnemyShooter(start_x - 10, start_y, Directions.Right)
-        self.dynamics.append(enemy_shooter)
+        enemy_shooter_1 = EnemyShooter(start_x - 10, start_y, Directions.Right)
+        self.dynamics.append(enemy_shooter_1)
+
+        enemy_shooter_2 = EnemyShooter(start_x - 15, start_y - 10, Directions.Right)
+        self.dynamics.append(enemy_shooter_2)
 
     def run(self):
         """
