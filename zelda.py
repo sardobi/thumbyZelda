@@ -90,6 +90,11 @@ class Sprites:
     def enemy_shooter_projectile(cls, x: int, y: int) -> thumby.Sprite:
         return thumby.Sprite(8, 8, bytearray([0, 0, 0, 24, 24, 0, 0, 0]), x, y, 0)
 
+    class UI:
+        @classmethod
+        def heart(cls, x: int, y: int) -> thumby.Sprite:
+            return thumby.Sprite(3, 4, bytearray([9, 3, 9]), x, y)
+
 
 class Direction:
     __value__: int
@@ -266,6 +271,10 @@ class Player(Drawable, Dynamic, Positional):
             self.attack(game)
 
         self.detect_collisions(game)
+
+        if self.health <= 0:
+            self.expire()
+
         self.draw()
 
     def move(self, direction: Direction):
@@ -310,6 +319,7 @@ class Player(Drawable, Dynamic, Positional):
 
         for projectile in colliding_projectiles:
             projectile.expire()
+            self.health -= 1
 
     def hitbox(self) -> Hitbox:
         return Hitbox(
@@ -500,26 +510,58 @@ class EnemyShooterProjectile(Projectile):
         )
 
 
+class UI:
+    def draw(self, player: Player) -> None:
+        self._draw_base_ui()
+
+        self._draw_hearts(player.health)
+
+    def _draw_base_ui(self) -> None:
+        # bar of height 4 at top of screen
+        for y in range(0, 4):
+            thumby.display.drawLine(0, y, thumby.display.width, y, 1)
+
+        # bar of height 1 at bottom of screen
+        thumby.display.drawLine(
+            0,
+            thumby.display.height - 1,
+            thumby.display.width,
+            thumby.display.height - 1,
+            1,
+        )
+
+    def _draw_hearts(self, health: int) -> None:
+        heart_x = 1
+        heart_y = 0
+        for _ in range(0, health):
+            thumby.display.drawSprite(Sprites.UI.heart(heart_x, heart_y))
+            heart_x += 4
+
+
 class Game:
+    player: Player
     dynamics: set[Dynamic]
+    ui: UI
 
     def __init__(self) -> None:
         self.dynamics = set()
+        self.ui = UI()
+
+        start_x = int((thumby.display.width / 2) - int(SPRITE_DIMS / 2))
+        start_y = int(thumby.display.height / 2) - int(SPRITE_DIMS / 2)
+
+        player = Player(start_x, start_y, Directions.Down)
+        self.player = player
+        self.dynamics.add(player)
+
+        enemy_shooter = EnemyShooter(start_x - 10, start_y, Directions.Right)
+        self.dynamics.add(enemy_shooter)
 
     def run(self):
         """
         Main entrypoint for the game
         """
         thumby.display.setFPS(GAME_SPEED)
-
-        start_x = int((thumby.display.width / 2) - int(SPRITE_DIMS / 2))
-        start_y = int(thumby.display.height / 2) - int(SPRITE_DIMS / 2)
-
-        player = Player(start_x, start_y, Directions.Down)
-        self.dynamics.add(player)
-
-        enemy_shooter = EnemyShooter(start_x - 10, start_y, Directions.Right)
-        self.dynamics.add(enemy_shooter)
 
         while True:
             thumby.display.fill(0)  # Fill canvas to black
@@ -530,6 +572,8 @@ class Game:
 
                 dynamic.step(self)
 
+            # draw UI last, on top
+            self.ui.draw(self.player)
             thumby.display.update()
 
 
