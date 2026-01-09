@@ -296,7 +296,7 @@ class Player(Drawable, Dynamic, Positional):
         # sword shoots out at full health
         lifetime = PROJECTILE_LIFETIME if self.health == self.max_health else SWORD_SIZE
 
-        game.dynamics.add(Sword(self.x_pos, self.y_pos, self.facing, lifetime))
+        game.dynamics.append(Sword(self.x_pos, self.y_pos, self.facing, lifetime))
 
         self._attack_cooldown = PLAYER_ATTACK_COOLDOWN
 
@@ -362,7 +362,9 @@ class EnemyShooter(Drawable, Dynamic, Positional):
         self.draw()
 
     def attack(self, game: "Game"):
-        game.dynamics.add(EnemyShooterProjectile(self.x_pos, self.y_pos, self.facing))
+        game.dynamics.append(
+            EnemyShooterProjectile(self.x_pos, self.y_pos, self.facing)
+        )
 
     def turn(self):
         self.facing = Directions.rotate_cw(self.facing)
@@ -508,11 +510,11 @@ class UI:
 
 class Game:
     player: Player
-    dynamics: set[Dynamic]
+    dynamics: list[Dynamic]
     ui: UI
 
     def __init__(self) -> None:
-        self.dynamics = set()
+        self.dynamics = []
         self.ui = UI()
 
         start_x = int((thumby.display.width / 2) - int(PLAYER_SIZE / 2))
@@ -520,10 +522,10 @@ class Game:
 
         player = Player(start_x, start_y, Directions.Down)
         self.player = player
-        self.dynamics.add(player)
+        self.dynamics.append(player)
 
         enemy_shooter = EnemyShooter(start_x - 10, start_y, Directions.Right)
-        self.dynamics.add(enemy_shooter)
+        self.dynamics.append(enemy_shooter)
 
     def run(self):
         """
@@ -534,10 +536,9 @@ class Game:
         while True:
             thumby.display.fill(0)  # Fill canvas to black
 
-            for dynamic in self.dynamics:
-                if dynamic.expired():
-                    self.dynamics.remove(dynamic)
+            self.dynamics[:] = [d for d in self.dynamics if not d.expired()]
 
+            for dynamic in self.dynamics:
                 dynamic.step(self)
 
             # draw UI last, on top
