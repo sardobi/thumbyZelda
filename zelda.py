@@ -614,6 +614,8 @@ class Game:
         )
         thumby.display.update()
 
+        time.sleep(1)
+
         # wait for user input
         while not thumby.actionPressed():
             pass
