@@ -278,22 +278,16 @@ class Player(Drawable, Dynamic, Positional):
         # sword shoots out at full health
         lifetime = PROJECTILE_LIFETIME if self.health == self.max_health else SWORD_SIZE
 
-        game.dynamics.append(Sword(self.x_pos, self.y_pos, self.facing, lifetime))
+        game.swords.append(Sword(self.x_pos, self.y_pos, self.facing, lifetime))
 
         self._attack_cooldown = PLAYER_ATTACK_COOLDOWN
 
     def detect_collisions(self, game: "Game"):
-        for dynamic in game.dynamics:
-            if not isinstance(dynamic, EnemyShooterProjectile):
-                continue
-
-            colliding = dynamic.overlaps(self)
-            if not colliding:
-                continue
-
-            # colliding with enemy projectile
-            dynamic.expire()
-            self.health -= 1
+        for projectile in game.enemy_projectiles:
+            if projectile.overlaps(self):
+                # colliding with enemy projectile
+                projectile.expire()
+                self.health -= 1
 
 
 class EnemyShooter(Drawable, Dynamic, Positional):
@@ -344,7 +338,7 @@ class EnemyShooter(Drawable, Dynamic, Positional):
         self.draw()
 
     def attack(self, game: "Game"):
-        game.dynamics.append(
+        game.enemy_projectiles.append(
             EnemyShooterProjectile(self.x_pos, self.y_pos, self.facing)
         )
 
@@ -355,17 +349,11 @@ class EnemyShooter(Drawable, Dynamic, Positional):
         self._sprite.y = self.y_pos
 
     def detect_collisions(self, game: "Game"):
-        for dynamic in game.dynamics:
-            if not isinstance(dynamic, Sword):
-                continue
-
-            colliding = dynamic.overlaps(self)
-            if not colliding:
-                continue
-
-            # colliding with sword
-            dynamic.expire()
-            self.expire()
+        for sword in game.swords:
+            if sword.overlaps(self):
+                sword.expire()
+                self.expire()
+                break
 
 
 class Projectile(Drawable, Dynamic, Positional):
@@ -502,25 +490,29 @@ class UI:
 
 class Game:
     player: Player
-    dynamics: list[Dynamic]
+    enemies: list[EnemyShooter]
+    swords: list[Sword]
+    enemy_projectiles: list[EnemyShooterProjectile]
     ui: UI
 
     def __init__(self) -> None:
-        self.dynamics = []
         self.ui = UI()
+
+        self.enemies = []
+        self.swords = []
+        self.enemy_projectiles = []
 
         start_x = int((thumby.display.width / 2) - int(PLAYER_SIZE / 2))
         start_y = int(thumby.display.height / 2) - int(PLAYER_SIZE / 2)
 
         player = Player(start_x, start_y, Directions.Down)
         self.player = player
-        self.dynamics.append(player)
 
         enemy_shooter_1 = EnemyShooter(start_x - 10, start_y, Directions.Right)
-        self.dynamics.append(enemy_shooter_1)
+        self.enemies.append(enemy_shooter_1)
 
         enemy_shooter_2 = EnemyShooter(start_x - 15, start_y - 10, Directions.Right)
-        self.dynamics.append(enemy_shooter_2)
+        self.enemies.append(enemy_shooter_2)
 
     def run(self):
         """
@@ -531,10 +523,26 @@ class Game:
         while True:
             thumby.display.fill(0)  # Fill canvas to black
 
-            self.dynamics[:] = [d for d in self.dynamics if not d.expired()]
+            # Process player
+            if not self.player.expired():
+                self.player.step(self)
 
-            for dynamic in self.dynamics:
-                dynamic.step(self)
+            # Process enemies
+            self.enemies[:] = [e for e in self.enemies if not e.expired()]
+            for enemy in self.enemies:
+                enemy.step(self)
+
+            # Process swords
+            self.swords[:] = [s for s in self.swords if not s.expired()]
+            for sword in self.swords:
+                sword.step(self)
+
+            # Process enemy projectiles
+            self.enemy_projectiles[:] = [
+                p for p in self.enemy_projectiles if not p.expired()
+            ]
+            for projectile in self.enemy_projectiles:
+                projectile.step(self)
 
             # draw UI last, on top
             self.ui.draw(self.player)
