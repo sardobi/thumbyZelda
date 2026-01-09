@@ -5,6 +5,7 @@ GAME_SPEED: int = 60
 PLAYER_ATTACK_COOLDOWN: int = int(GAME_SPEED / 3)
 PLAYER_BASE_HEALTH: int = 3
 PLAYER_FLASH_DURATION: int = int(GAME_SPEED / 20)
+PUFF_DURATION: int = int(GAME_SPEED / 10)
 
 PROJECTILE_LIFETIME: int = GAME_SPEED * 2
 SWORD_SIZE: int = 8
@@ -90,18 +91,26 @@ class Sprites:
         def right(cls, x: int, y: int) -> thumby.Sprite:
             return thumby.Sprite(8, 8, cls.BITMAP_RIGHT, x, y, 0)
 
-    BITMAP_ENEMY_PROJECTILE = bytearray([0, 0, 0, 24, 24, 0, 0, 0])
-
-    @classmethod
-    def enemy_shooter_projectile(cls, x: int, y: int) -> thumby.Sprite:
-        return thumby.Sprite(8, 8, cls.BITMAP_ENEMY_PROJECTILE, x, y, 0)
-
     class UI:
         BITMAP_HEART = bytearray([9, 3, 9])
 
         @classmethod
         def heart(cls, x: int, y: int) -> thumby.Sprite:
             return thumby.Sprite(3, 4, cls.BITMAP_HEART, x, y)
+
+    BITMAP_ENEMY_PROJECTILE = bytearray([0, 0, 0, 24, 24, 0, 0, 0])
+    BITMAP_PUFF_FRAME1 = bytearray([0, 20, 42, 66, 132, 132, 82, 44])
+    BITMAP_PUFF_FRAME2 = bytearray([0, 0, 20, 60, 104, 120, 44, 0])
+
+    @classmethod
+    def enemy_shooter_projectile(cls, x: int, y: int) -> thumby.Sprite:
+        return thumby.Sprite(8, 8, cls.BITMAP_ENEMY_PROJECTILE, x, y, 0)
+
+    @classmethod
+    def puff(cls, x: int, y: int) -> thumby.Sprite:
+        return thumby.Sprite(
+            8, 8, cls.BITMAP_PUFF_FRAME1 + cls.BITMAP_PUFF_FRAME2, x, y, 0
+        )
 
 
 class Direction:
@@ -380,6 +389,7 @@ class EnemyShooter(Drawable, Dynamic, Positional):
             if sword.overlaps(self):
                 sword.expire()
                 self.expire()
+                game.puffs.append(Puff(self.x_pos, self.y_pos))
                 game.score += 1
                 break
 
@@ -468,6 +478,29 @@ class Sword(Projectile):
         )
 
 
+class Puff(Drawable, Dynamic):
+    lifetime: int
+    _time_alive: int
+
+    def __init__(self, x_pos: int, y_pos: int) -> None:
+        Dynamic.__init__(self)
+        self._sprite = Sprites.puff(x_pos, y_pos)
+        self.lifetime = PUFF_DURATION
+        self._time_alive = 0
+
+    def step(self, game: "Game") -> None:
+        self._time_alive += 1
+
+        # advance animation
+        if self._time_alive >= self.lifetime / 2:
+            self._sprite.setFrame(1)
+
+        if self._time_alive >= self.lifetime:
+            self.expire()
+
+        self.draw()
+
+
 class EnemyShooterProjectile(Projectile):
     def __init__(
         self,
@@ -521,6 +554,7 @@ class Game:
     enemies: list[EnemyShooter]
     swords: list[Sword]
     enemy_projectiles: list[EnemyShooterProjectile]
+    puffs: list[Puff]
     ui: UI
 
     score: int
@@ -533,6 +567,7 @@ class Game:
         self.enemies = []
         self.swords = []
         self.enemy_projectiles = []
+        self.puffs = []
 
         start_x = int((thumby.display.width / 2) - int(PLAYER_SIZE / 2))
         start_y = int(thumby.display.height / 2) - int(PLAYER_SIZE / 2)
@@ -616,6 +651,11 @@ class Game:
             ]
             for projectile in self.enemy_projectiles:
                 projectile.step(self)
+
+            # Process puffs
+            self.puffs[:] = [s for s in self.puffs if not s.expired()]
+            for puff in self.puffs:
+                puff.step(self)
 
             # draw UI last, on top
             self.ui.draw(self.player)
