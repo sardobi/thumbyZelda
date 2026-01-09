@@ -1,3 +1,4 @@
+import time
 import thumby
 import random
 
@@ -612,6 +613,10 @@ class Game:
             1,
         )
         thumby.display.update()
+
+        # wait for user input
+        while not thumby.actionPressed():
+            pass
 
     def run(self):
         """
