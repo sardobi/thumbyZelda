@@ -21,84 +21,83 @@ ENEMY_SHOOTER_PROJECTILE_SIZE: int = 2
 
 class Sprites:
     class Link:
+        BITMAP_UP = bytearray([98, 244, 138, 145, 145, 138, 244, 98])
+        BITMAP_DOWN = bytearray([98, 244, 142, 157, 157, 142, 244, 98])
+        BITMAP_LEFT = bytearray([0, 4, 238, 157, 157, 137, 247, 0])
+        BITMAP_RIGHT = bytearray([0, 247, 137, 157, 157, 238, 4, 0])
+
         @classmethod
         def up(cls, x: int, y: int) -> thumby.Sprite:
-            return thumby.Sprite(
-                8, 8, bytearray([98, 244, 138, 145, 145, 138, 244, 98]), x, y, 0
-            )
+            return thumby.Sprite(8, 8, cls.BITMAP_UP, x, y, 0)
 
         @classmethod
         def down(cls, x: int, y: int) -> thumby.Sprite:
-            return thumby.Sprite(
-                8, 8, bytearray([98, 244, 142, 157, 157, 142, 244, 98]), x, y, 0
-            )
+            return thumby.Sprite(8, 8, cls.BITMAP_DOWN, x, y, 0)
 
         @classmethod
         def left(cls, x: int, y: int) -> thumby.Sprite:
-            return thumby.Sprite(
-                8, 8, bytearray([0, 4, 238, 157, 157, 137, 247, 0]), x, y, 0
-            )
+            return thumby.Sprite(8, 8, cls.BITMAP_LEFT, x, y, 0)
 
         @classmethod
         def right(cls, x: int, y: int) -> thumby.Sprite:
-            return thumby.Sprite(
-                8, 8, bytearray([0, 247, 137, 157, 157, 238, 4, 0]), x, y, 0
-            )
+            return thumby.Sprite(8, 8, cls.BITMAP_RIGHT, x, y, 0)
 
     class Sword:
+        BITMAP_UP = bytearray([0, 0, 0, 32, 254, 32, 0, 0])
+        BITMAP_DOWN = bytearray([0, 0, 4, 127, 4, 0, 0, 0])
+        BITMAP_LEFT = bytearray([0, 16, 16, 16, 16, 56, 16, 16])
+        BITMAP_RIGHT = bytearray([16, 16, 56, 16, 16, 16, 16, 0])
+
         @classmethod
         def up(cls, x: int, y: int) -> thumby.Sprite:
-            return thumby.Sprite(8, 8, bytearray([0, 0, 0, 32, 254, 32, 0, 0]), x, y, 0)
+            return thumby.Sprite(8, 8, cls.BITMAP_UP, x, y, 0)
 
         @classmethod
         def down(cls, x: int, y: int) -> thumby.Sprite:
-            return thumby.Sprite(8, 8, bytearray([0, 0, 4, 127, 4, 0, 0, 0]), x, y, 0)
+            return thumby.Sprite(8, 8, cls.BITMAP_DOWN, x, y, 0)
 
         @classmethod
         def left(cls, x: int, y: int) -> thumby.Sprite:
-            return thumby.Sprite(
-                8, 8, bytearray([0, 16, 16, 16, 16, 56, 16, 16]), x, y, 0
-            )
+            return thumby.Sprite(8, 8, cls.BITMAP_LEFT, x, y, 0)
 
         @classmethod
         def right(cls, x: int, y: int) -> thumby.Sprite:
-            return thumby.Sprite(
-                8, 8, bytearray([16, 16, 56, 16, 16, 16, 16, 0]), x, y, 0
-            )
+            return thumby.Sprite(8, 8, cls.BITMAP_RIGHT, x, y, 0)
 
     class EnemyShooter:
+        BITMAP_UP = bytearray([0, 252, 23, 2, 2, 23, 252, 0])
+        BITMAP_DOWN = bytearray([0, 252, 86, 162, 162, 86, 252, 0])
+        BITMAP_LEFT = bytearray([40, 236, 6, 18, 18, 6, 252, 0])
+        BITMAP_RIGHT = bytearray([0, 252, 6, 18, 18, 6, 236, 40])
+
         @classmethod
         def up(cls, x: int, y: int) -> thumby.Sprite:
-            return thumby.Sprite(
-                8, 8, bytearray([0, 252, 23, 2, 2, 23, 252, 0]), x, y, 0
-            )
+            return thumby.Sprite(8, 8, cls.BITMAP_UP, x, y, 0)
 
         @classmethod
         def down(cls, x: int, y: int) -> thumby.Sprite:
-            return thumby.Sprite(
-                8, 8, bytearray([0, 252, 86, 162, 162, 86, 252, 0]), x, y, 0
-            )
+            return thumby.Sprite(8, 8, cls.BITMAP_DOWN, x, y, 0)
 
         @classmethod
         def left(cls, x: int, y: int) -> thumby.Sprite:
-            return thumby.Sprite(
-                8, 8, bytearray([40, 236, 6, 18, 18, 6, 252, 0]), x, y, 0
-            )
+            return thumby.Sprite(8, 8, cls.BITMAP_LEFT, x, y, 0)
 
         @classmethod
         def right(cls, x: int, y: int) -> thumby.Sprite:
-            return thumby.Sprite(
-                8, 8, bytearray([0, 252, 6, 18, 18, 6, 236, 40]), x, y, 0
-            )
+            return thumby.Sprite(8, 8, cls.BITMAP_RIGHT, x, y, 0)
+
+    BITMAP_ENEMY_PROJECTILE = bytearray([0, 0, 0, 24, 24, 0, 0, 0])
 
     @classmethod
     def enemy_shooter_projectile(cls, x: int, y: int) -> thumby.Sprite:
-        return thumby.Sprite(8, 8, bytearray([0, 0, 0, 24, 24, 0, 0, 0]), x, y, 0)
+        return thumby.Sprite(8, 8, cls.BITMAP_ENEMY_PROJECTILE, x, y, 0)
 
     class UI:
+        BITMAP_HEART = bytearray([9, 3, 9])
+
         @classmethod
         def heart(cls, x: int, y: int) -> thumby.Sprite:
-            return thumby.Sprite(3, 4, bytearray([9, 3, 9]), x, y)
+            return thumby.Sprite(3, 4, cls.BITMAP_HEART, x, y)
 
 
 class Direction:
