@@ -1,8 +1,10 @@
 import thumby
+import random
 
 GAME_SPEED: int = 60
 PLAYER_ATTACK_COOLDOWN: int = int(GAME_SPEED / 3)
 PLAYER_BASE_HEALTH: int = 3
+PLAYER_FLASH_DURATION: int = int(GAME_SPEED / 20)
 
 PROJECTILE_LIFETIME: int = GAME_SPEED * 2
 SWORD_SIZE: int = 8
@@ -14,6 +16,8 @@ PLAYER_SIZE: int = 8
 ENEMY_SHOOTER_SIZE: int = 8
 ENEMY_SHOOTER_TURN_RATE: int = int(GAME_SPEED / 4) * 3
 ENEMY_SHOOTER_ATTACK_RATE: int = int(GAME_SPEED / 4) * 3
+
+ENEMY_SPAWN_DELAY: int = GAME_SPEED * 2
 
 # width and height of enemy shooter projectiles
 ENEMY_SHOOTER_PROJECTILE_SIZE: int = 2
@@ -139,6 +143,20 @@ class Directions:
 
         raise Exception("Unknown direction")
 
+    @classmethod
+    def random(cls) -> Direction:
+        i = random.randint(1, 4)
+        if i == 1:
+            return Directions.Up
+        if i == 2:
+            return Directions.Down
+        if i == 3:
+            return Directions.Left
+        if i == 4:
+            return Directions.Right
+
+        raise Exception("unexpected random value")
+
 
 class Drawable:
     _sprite: thumby.Sprite
@@ -212,6 +230,9 @@ class Player(Drawable, Dynamic, Positional):
     _move_speed: int = 1
     _attack_cooldown: int = 0
 
+    # flash player when hit
+    _remaining_flash_frames: int
+
     __directions_to_sprite__: dict[Direction, thumby.Sprite]
 
     def __init__(self, x_pos: int, y_pos: int, facing: Direction) -> None:
@@ -231,6 +252,8 @@ class Player(Drawable, Dynamic, Positional):
         self._sprite = self.__directions_to_sprite__[facing]
         self._sprite.x = self.x_pos
         self._sprite.y = self.y_pos
+
+        self._remaining_flash_frames = 0
 
     def step(self, game: "Game"):
         if self._attack_cooldown > 0:
@@ -252,7 +275,10 @@ class Player(Drawable, Dynamic, Positional):
         if self.health <= 0:
             self.expire()
 
-        self.draw()
+        if self._remaining_flash_frames > 0:
+            self._remaining_flash_frames -= 1
+        else:
+            self.draw()
 
     def move(self, direction: Direction):
         if direction == Directions.Up:
@@ -288,6 +314,7 @@ class Player(Drawable, Dynamic, Positional):
                 # colliding with enemy projectile
                 projectile.expire()
                 self.health -= 1
+                self._remaining_flash_frames = PLAYER_FLASH_DURATION
 
 
 class EnemyShooter(Drawable, Dynamic, Positional):
@@ -353,6 +380,7 @@ class EnemyShooter(Drawable, Dynamic, Positional):
             if sword.overlaps(self):
                 sword.expire()
                 self.expire()
+                game.score += 1
                 break
 
 
@@ -495,6 +523,10 @@ class Game:
     enemy_projectiles: list[EnemyShooterProjectile]
     ui: UI
 
+    score: int
+
+    _enemy_spawn_cooldown: int
+
     def __init__(self) -> None:
         self.ui = UI()
 
@@ -508,11 +540,43 @@ class Game:
         player = Player(start_x, start_y, Directions.Down)
         self.player = player
 
-        enemy_shooter_1 = EnemyShooter(start_x - 10, start_y, Directions.Right)
-        self.enemies.append(enemy_shooter_1)
+        self.score = 0
 
-        enemy_shooter_2 = EnemyShooter(start_x - 15, start_y - 10, Directions.Right)
-        self.enemies.append(enemy_shooter_2)
+        # spawn three enemies initially
+        self.spawn_enemy()
+        self.spawn_enemy()
+        self.spawn_enemy()
+        self._enemy_spawn_cooldown = ENEMY_SPAWN_DELAY
+
+    def spawn_enemy(self):
+        x = random.randint(0, thumby.display.width - ENEMY_SHOOTER_SIZE)
+        y = random.randint(0, thumby.display.height - ENEMY_SHOOTER_SIZE)
+        enemy_shooter = EnemyShooter(x, y, Directions.random())
+
+        self.enemies.append(enemy_shooter)
+
+    def show_game_over(self):
+        thumby.display.setFont("/lib/font8x8.bin", 8, 8, 1)
+        thumby.display.drawText(
+            "GAME",
+            17,
+            10,
+            1,
+        )
+        thumby.display.drawText(
+            "OVER",
+            17,
+            18,
+            1,
+        )
+        thumby.display.setFont("/lib/font5x7.bin", 5, 7, 1)
+        thumby.display.drawText(
+            f"Score: {self.score}",
+            10,
+            27,
+            1,
+        )
+        thumby.display.update()
 
     def run(self):
         """
@@ -522,6 +586,15 @@ class Game:
 
         while True:
             thumby.display.fill(0)  # Fill canvas to black
+
+            if self.player.expired():
+                self.show_game_over()
+                return
+
+            self._enemy_spawn_cooldown -= 1
+            if self._enemy_spawn_cooldown <= 0:
+                self.spawn_enemy()
+                self._enemy_spawn_cooldown = ENEMY_SPAWN_DELAY
 
             # Process player
             if not self.player.expired():
